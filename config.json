@@ -1,0 +1,4 @@
+{
+  "openAiKey": "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",
+  "filePatterns": ["Notion_DB/**/*.md", "AnotherPattern/**/*.txt"]
+}
