@@ -4,18 +4,19 @@
   "description": "",
   "main": "index.ts",
   "bin": "dist/index.js",
-  "type": "module",
+
   "scripts": {
     "build": "tsc --declaration --outDir dist/",
     "start": "nodemon --watch src/**/*.ts --ext ts,tsx --exec ts-node-esm src/index.ts",
-    "serve": "node dist/index.js"
+    "serve": "node dist/index.js",
+    "compile": "tsc && nexe -i dist\\index.js -o golden-windows.exe -t windows-x64 --build && nexe -i dist\\index.js -o golden-macos -t mac-x64 --build && nexe -i dist\\index.js -o golden-linux -t linux-x64 --build"
   },
   "pkg": {
     "ignore": [
       "DocumentDb/**/*",
       "DocumentDb",
       "NotionDb/**/*",
-      "NotionDb",      
+      "NotionDb",
       "config.json"
     ]
   },
@@ -38,8 +39,11 @@
     "@types/js-yaml": "^4",
     "@types/node": "^16.11.7",
     "@types/socket.io": "^3.0.2",
+    "node-loader": "^2.0.0",
     "ts-node": "^10.4.0",
     "tsx": "^3.12.3",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "webpack": "^5.79.0",
+    "webpack-cli": "^5.0.1"
   }
 }

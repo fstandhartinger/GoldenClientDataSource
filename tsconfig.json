@@ -17,9 +17,7 @@
     "noUnusedParameters": true,
     "useDefineForClassFields": true,
     "strictPropertyInitialization": false,
-    "esModuleInterop": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "esModuleInterop": true        
   },
   "exclude": ["node_modules/", "dist/", "tests/"],
   "include": ["src/**/*.ts"]

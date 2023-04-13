@@ -1,0 +1,5 @@
+tsc
+nexe dist\index.js --build
+nexe -i dist\index.js -o golden-windows.exe -t windows-x64
+nexe -i dist\index.js -o golden-macos -t mac-x64
+nexe -i dist\index.js -o golden-linux -t linux-x64
