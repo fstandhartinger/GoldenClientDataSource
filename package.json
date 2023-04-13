@@ -9,7 +9,7 @@
     "build": "tsc --declaration --outDir dist/",
     "start": "nodemon --watch src/**/*.ts --ext ts,tsx --exec ts-node-esm src/index.ts",
     "serve": "node dist/index.js",
-    "compile": "tsc && nexe -i dist\\index.js -o golden-windows.exe -t windows-x64 --build && nexe -i dist\\index.js -o golden-macos -t mac-x64 --build && nexe -i dist\\index.js -o golden-linux -t linux-x64 --build"
+    "compile": "tsc && nexe -i dist\\index.js -o bin\\golden-windows.exe -t windows-x64 --build && nexe -i dist\\index.js -o bin\\golden-macos -t mac-x64 --build && nexe -i dist\\index.js -o bin\\golden-linux -t linux-x64 --build"
   },
   "pkg": {
     "ignore": [
