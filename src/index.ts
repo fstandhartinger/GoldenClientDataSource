@@ -10,10 +10,8 @@ const { PDFLoader } = require("langchain/document_loaders/fs/pdf");
 const { OpenAI } = require("langchain/llms/openai");
 const { VectorDBQAChain } = require("langchain/chains");
 
-
 async function main() {
-
-  console.log("Starting local GOLDEN data source")
+  console.log("Starting local GOLDEN data source");
 
   //load the config file
   const config = new ConfigHandler().config;
@@ -42,10 +40,6 @@ class ConfigHandler {
     const rawData = fs.readFileSync(this.configFilePath);
     this.config = JSON.parse(rawData.toString());
   }
-
-  public getFilePatterns(): string[] {
-    return this.config.filePatterns;
-  }
 }
 
 class QueryServer {
@@ -57,10 +51,12 @@ class QueryServer {
     // Create a Socket.IO server
     const socket = socketIOClient("https://goldenretriever.herokuapp.com");
 
-    console.log("Ready, waiting for request from ChatGPT");
+    console.log("Ready, connecting with GOLDEN");
 
     socket.on("connect", () => {
       console.log("Connected to GOLDEN, internal connection id:", socket.id);
+
+      console.log("Ready, waiting for request from ChatGPT");
 
       socket.on("disconnect", () => {
         console.log("Disconnected from GOLDEN:", socket.id);
@@ -75,7 +71,7 @@ class QueryServer {
         const answer = result.text;
         const sources = result?.sources;
         const response = [{ answer: answer, source: sources }];
-        console.log("Sending result", response);
+        console.log("Sending result");
         socket.emit("queryResult", response);
       });
     });
@@ -100,7 +96,6 @@ class DocumentDb {
       await this.update();
     } else {
       await this.buildUpFromScratch();
-      await this.save();
     }
   }
 
@@ -131,23 +126,21 @@ class DocumentDb {
       "Indexing your documents (this can take some minutes - please don't close app during indexing)"
     );
 
-    // Load in the data in the format that Notion exports it in
+    // Load in the data
     const paths = this.getFilePaths();
-
     const data: string[] = [];
     const sources: string[] = [];
     const lastChangedDates: Date[] = [];
-
     for (const p of paths) {
       try {
         const filePath = path.join("./", p);
-        const fileContent = await this.loadFileContent(filePath);
+        const fileContent = await this.extractFileContent(filePath);
         const fileStat = fs.statSync(filePath);
         data.push(fileContent);
         sources.push(filePath);
         lastChangedDates.push(fileStat.mtime);
       } catch (e) {
-        console.log("File could not be loaded: ", e);
+        console.log("  File could not be loaded: ", e);
       }
     }
 
@@ -176,19 +169,10 @@ class DocumentDb {
     const s = await HNSWLib.fromTexts(docs, metadatas, new OpenAIEmbeddings());
     this.store = s;
 
-    console.log("Index build up done");
-  }
+    //save to disk
+    await this.save();
 
-  private async loadFileContent(filePath: string): Promise<string> {
-    const ext = path.extname(filePath)?.toUpperCase();
-    let fileContent: string;
-    if (ext == ".DOCX") {
-      return (await new DocxLoader(filePath).load())[0].pageContent;
-    } else if (ext == ".PDF") {
-      return (await new PDFLoader(filePath).load())[0].pageContent;
-    }
-    fileContent = fs.readFileSync(filePath, { encoding: "utf-8" });
-    return fileContent;
+    console.log("Index build up done");
   }
 
   async update(): Promise<void> {
@@ -202,46 +186,45 @@ class DocumentDb {
 
     // Scan the files again
     const paths = this.getFilePaths();
-
     const textSplitter = new CharacterTextSplitter({
       separator: "\n",
       chunkSize: 1500,
     });
-
     const existingDocs = [...this.store.docstore._docs.values()];
     const newDocs: any[] = [];
     for (const p of paths) {
-      const filePath = path.join("./", p);
-      const fileStat = fs.statSync(filePath);
-      const lastChangedDate = fileStat.mtime;
-
-      // Check if the file is new or has been modified since the last update
-
-      const existingDoc = existingDocs.find(
-        (x) => x.metadata.source == filePath
-      );
-      const shouldUpdate =
-        !existingDoc ||
-        (existingDoc && existingDoc.metadata.lastChanged < lastChangedDate);
-
-      if (shouldUpdate) {
-        const fileContent = await this.loadFileContent(filePath);
-        const splits = await textSplitter.splitText(fileContent);
-
-        // Add or update the documents in the store
-        for (const split of splits) {
-          const newDoc = {
-            pageContent: split,
-            metadata: { source: filePath, lastChanged: lastChangedDate },
-          };
-          newDocs.push(newDoc);
+      try {
+        const filePath = path.join("./", p);
+        const fileStat = fs.statSync(filePath);
+        const lastChangedDate = fileStat.mtime;
+        // Check if the file is new or has been modified since the last update
+        const existingDoc = existingDocs.find(
+          (x) => x.metadata.source == filePath
+        );
+        const shouldUpdate =
+          !existingDoc ||
+          (existingDoc && existingDoc.metadata.lastChanged < lastChangedDate);
+        if (shouldUpdate) {
+          const fileContent = await this.extractFileContent(filePath);
+          const splits = await textSplitter.splitText(fileContent);
+          // Add or update the documents in the store
+          for (const split of splits) {
+            const newDoc = {
+              pageContent: split,
+              metadata: { source: filePath, lastChanged: lastChangedDate },
+            };
+            newDocs.push(newDoc);
+          }
         }
+      } catch (e) {
+        console.log("  File could not be loaded: ", e);
       }
     }
 
     if (newDocs.length == 0) {
       return;
     }
+    //add to the vector store and save
     await this.lock.runWithLock(async () => {
       await this.store.addDocuments(newDocs);
       await this.save();
@@ -260,32 +243,44 @@ class DocumentDb {
       this.update();
     }, msUpdateCycle);
   }
+
+  private async extractFileContent(filePath: string): Promise<string> {
+    const ext = path.extname(filePath)?.toUpperCase();
+    let fileContent: string;
+    if (ext == ".DOCX") {
+      return (await new DocxLoader(filePath).load())[0].pageContent;
+    } else if (ext == ".PDF") {
+      return (await new PDFLoader(filePath).load())[0].pageContent;
+    }
+    fileContent = fs.readFileSync(filePath, { encoding: "utf-8" });
+    return fileContent;
+  }
 }
 
 class AsyncLock {
-  private _locked: boolean;
-  private _waitQueue: (() => void)[];
+  private locked: boolean;
+  private waitQueue: (() => void)[];
 
   constructor() {
-    this._locked = false;
-    this._waitQueue = [];
+    this.locked = false;
+    this.waitQueue = [];
   }
 
   async acquire(): Promise<void> {
-    if (this._locked) {
-      await new Promise<void>((resolve) => this._waitQueue.push(resolve));
+    if (this.locked) {
+      await new Promise<void>((resolve) => this.waitQueue.push(resolve));
     }
-    this._locked = true;
+    this.locked = true;
   }
 
   release(): void {
-    if (this._waitQueue.length > 0) {
-      const nextResolve = this._waitQueue.shift();
+    if (this.waitQueue.length > 0) {
+      const nextResolve = this.waitQueue.shift();
       if (nextResolve) {
         nextResolve();
       }
     } else {
-      this._locked = false;
+      this.locked = false;
     }
   }
 
@@ -299,4 +294,4 @@ class AsyncLock {
   }
 }
 
-main();
+main(); //<- this is where it starts, scroll to the top
