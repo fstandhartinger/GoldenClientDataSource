@@ -1,4 +1,8 @@
 {
-  "openAiKey": "sk-...",
-  "filePatterns": ["Notion_DB/**/*.md", "AnotherPattern/**/*.txt"]
+  "openAiKey": "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",
+  "documents": {
+    "filePath": "D:/Dev/GoldenDataSource/SalesAgreements",
+    "extensions": [".docx"]
+  },
+  "sqlDb": "Server=localhost\\SQLEXPRESS;Database=master;Trusted_Connection=True;"
 }

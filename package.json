@@ -4,12 +4,13 @@
   "description": "",
   "main": "index.ts",
   "bin": "dist/index.js",
-
   "scripts": {
+    "pack": "webpack --env production",
     "build": "tsc --declaration --outDir dist/",
     "start": "nodemon --watch src/**/*.ts --ext ts,tsx --exec ts-node-esm src/index.ts",
     "serve": "node dist/index.js",
-    "compile": "tsc && nexe -i dist\\index.js -o bin\\golden-windows.exe -t windows-x64 --build && nexe -i dist\\index.js -o bin\\golden-macos -t mac-x64 --build && nexe -i dist\\index.js -o bin\\golden-linux -t linux-x64 --build"
+    "compile": "tsc && nexe -i dist\\index.js -o bin\\golden-windows.exe -t windows-x64 --build && nexe -i dist\\index.js -o bin\\golden-macos -t mac-x64 --build && nexe -i dist\\index.js -o bin\\golden-linux -t linux-x64 --build",
+    "compile2": "webpack --env production && nexe -i dist\\index.js -o bin\\golden-windows.exe -t windows-x64 --build && nexe -i dist\\index.js -o bin\\golden-macos -t mac-x64 --build && nexe -i dist\\index.js -o bin\\golden-linux -t linux-x64 --build"
   },
   "pkg": {
     "ignore": [
@@ -24,14 +25,32 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/jszip": "^3.4.1",
+    "@types/xml2js": "^0.4.11",
+    "buffer": "^6.0.3",
+    "bufferutil": "^4.0.7",
+    "crypto-browserify": "^3.12.0",
     "express": "^4.18.2",
     "fs-extra": "^11.1.1",
     "glob": "^10.0.0",
     "hnswlib-node": "^1.4.2",
+    "imap": "^0.8.19",
+    "jszip": "^3.10.1",
     "langchain": "^0.0.54",
+    "mailparser": "^3.6.4",
+    "mammoth": "^1.5.1",
+    "moment": "^2.29.4",
     "nodemon": "^2.0.22",
+    "path-browserify": "^1.0.1",
+    "pdfjs-dist": "^3.5.141",
+    "process": "^0.11.10",
     "socket.io": "^4.6.1",
-    "socket.io-client": "^4.6.1"
+    "socket.io-client": "^4.6.1",
+    "stream-browserify": "^3.0.0",
+    "url": "^0.11.0",
+    "utf-8-validate": "^5.0.10",
+    "util": "^0.12.5",
+    "xml2js": "^0.5.0"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.2",
@@ -39,11 +58,15 @@
     "@types/js-yaml": "^4",
     "@types/node": "^16.11.7",
     "@types/socket.io": "^3.0.2",
+    "copy-webpack-plugin": "^11.0.0",
     "node-loader": "^2.0.0",
+    "ts-loader": "^9.4.2",
     "ts-node": "^10.4.0",
     "tsx": "^3.12.3",
     "typescript": "^5.0.4",
     "webpack": "^5.79.0",
-    "webpack-cli": "^5.0.1"
+    "webpack-cli": "^5.0.1",
+    "webpack-merge": "^5.8.0",
+    "webpack-node-externals": "^3.0.0"
   }
 }
